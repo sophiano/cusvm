@@ -1,9 +1,9 @@
 
 # Module cusvm 
 
-cusvm is a module written in Python to monitor panel of time-series data.
+cusvm is a module written in Python to monitor panels of time-series data.
 
-The package contains different functions to apply a robust non-parametric quality control based on the block bootstrap and the CUSUM chart to a panel of series. The method also provides predictions of the shapes and the sizes of the deviations encountered, using support vector machine (SVM) procedures. <br>
+The package contains different functions. Those can be used to apply a robust non-parametric quality control based on the block bootstrap and the CUSUM chart to a panel of series. The method also provides predictions of the shapes and the sizes of the deviations encountered, using support vector machine (SVM) procedures. <br>
 The name _cusvm_ comes from the contraction of the two main ingredients of the method: the CUSUM chart and the SVM methods.
 
 This package was written by Sophie Mathieu (UCLouvain/Royal Observatory of Belgium). 
