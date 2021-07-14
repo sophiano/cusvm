@@ -13,7 +13,6 @@ The data are obtained each day and cover the years 2015-2020.
 import pickle
 import pandas as pd
 import numpy as np 
-from datetime import timedelta, datetime
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 plt.rcParams['font.size'] = 14
@@ -35,43 +34,8 @@ names = list(df.columns)[1:]
 (n_obs, n_series) = data.shape   
 
 
-### prepare the time
-def is_leap_year(year):
-    """Determine whether a year is a leap year."""
-    return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
-
-def toYearFraction(date):
-    """ convert a date into a fraction of year """
-    year = date.year
-    startOfThisYear = datetime(year=year, month=1, day=1)
-    startOfNextYear = datetime(year=year+1, month=1, day=1)
-
-    yearElapsed = len([startOfThisYear + timedelta(days=0, minutes=x) for x in range(0, int((date-startOfThisYear).total_seconds() / 60), 15)])
-    yearDuration = len([startOfThisYear + timedelta(days=0, minutes=x) for x in range(0, int((startOfNextYear-startOfThisYear).total_seconds() / 60), 15)])
-    fraction = yearElapsed/yearDuration
-
-    return date.year + fraction
-
-
-# date = df['Date']
-# n_obs = len(date)
-
-# date_obj = []
-# time = []
-# for i in range(n_obs):
-#     date_obj.append(datetime.strptime(date[i], '%Y-%m-%d'))
-#     time.append(toYearFraction(date_obj[i]))
-
-# time = np.array(time)
-
-# export data (time in fraction of years)
-# with open('../data/time_daily', 'wb') as file: 
-#       my_pickler = pickle.Pickler(file)
-#       my_pickler.dump(time) 
-
-
 ### load time
-with open(data_path + '\time_daily', 'rb') as file:
+with open(data_path + '/time_daily', 'rb') as file:
     my_depickler = pickle.Unpickler(file)
     time = my_depickler.load() #data every day
     
@@ -277,7 +241,6 @@ for i in range(region, region+1):
     #          form_plus, form_minus, size_plus, size_minus, names[i],
     #          time_start=2016, time_stop=2017)
         
-    ##fig.savefig('../figures/%s.pdf' %names[i]) 
     
     
 

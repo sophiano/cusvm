@@ -36,7 +36,7 @@ names = list(df.columns)[1:]
 
 
 ### load time
-with open(data_path + '\time_daily', 'rb') as file:
+with open(data_path + '/time_daily', 'rb') as file:
     my_depickler = pickle.Unpickler(file)
     time = my_depickler.load() #data every day
     
