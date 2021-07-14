@@ -1,5 +1,6 @@
 # Include the data files
 #recursive-include data *
 include data/PVdaily.csv
+include data/time_daily
 
 

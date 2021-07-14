@@ -10,14 +10,14 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 plt.rcParams['font.size'] = 14
-import sys
-sys.path.insert(1, '../')
+import pkg_resources as pkg
 
 from cusvm import preprocessing as pre
 from cusvm import autocorrelations as acf
 
-### load data 
-df = pd.read_csv (r'../data/PVdaily.csv')
+### load data (loaded automatically with package)
+data_path = pkg.resource_filename(pkg.Requirement.parse("cusvm"), 'data')
+df = pd.read_csv(data_path + '\PVdaily.csv')
 data = np.array(df)[:,1:]
 data = data.astype('float')
 data = data/96
@@ -36,7 +36,7 @@ names = list(df.columns)[1:]
 
 
 ### load time
-with open('../data/time_daily', 'rb') as file:
+with open(data_path + '\time_daily', 'rb') as file:
     my_depickler = pickle.Unpickler(file)
     time = my_depickler.load() #data every day
     
