@@ -194,7 +194,7 @@ def input_vector_length(data, delta_min, L_plus, L_minus=None, k=None,
 
 
 def training_svm(data, L_plus, delta_min, wdw_length, scale, 
-              delay=True, L_minus=None,  k=None, n=63000, n_series=500,
+              delay=0, L_minus=None,  k=None, n=63000, n_series=500,
             C=1.0, epsilon=0.001, kernel='rbf', degree=3, 
             block_length=None, BB_method='MBB', 
             precision=True, confusion=True): 
@@ -234,9 +234,9 @@ def training_svm(data, L_plus, delta_min, wdw_length, scale,
          (similar to the variance of a normal distribution). 
          A typical range of values for scale is [1,4], depending on the size
          of the actual deviations
-    delay : bool, optional
+    delay : int, optional
         Flag to start the chart after a delay, randomly selected from the
-        interval [0, wdw_lengt]. Default is True. 
+        interval [0, delay]. Default is 0 (no delay). 
     L_minus :  float, optional
         Value for the negative control limit. Default is None. 
         When None, L_minus = - L_plus. 
@@ -301,6 +301,7 @@ def training_svm(data, L_plus, delta_min, wdw_length, scale,
     
     wdw_length = int(np.ceil(wdw_length)) #should be integer
     
+    delay = int(delay)
     n = int(n)
     assert n > 0, "n must be strictly positive"
     if n % 3 == 2:  #n should be multiple of 3
@@ -335,8 +336,8 @@ def training_svm(data, L_plus, delta_min, wdw_length, scale,
             series = resample(blocks, replace=True, n_samples=n_blocks).flatten()[:n_series]
         
         #simulate a random delay
-        if delay:
-            delay_rnd = np.random.randint(wdw_length*2) 
+        if delay > 0 :
+            delay_rnd = np.random.randint(delay) 
         
         
         for rnd_form in range(3):
@@ -402,8 +403,8 @@ def training_svm(data, L_plus, delta_min, wdw_length, scale,
             series = resample(blocks, replace=True, n_samples=n_blocks).flatten()[:n_series]
         
         #simulate a random delay
-        if delay:
-            delay_rnd = np.random.randint(wdw_length*2)
+        if delay > 0 :
+            delay_rnd = np.random.randint(delay) 
         
         for rnd_form in range(3):
             
@@ -495,7 +496,7 @@ def training_svm(data, L_plus, delta_min, wdw_length, scale,
 
 
 def choice_C(data, L_plus, delta_min, wdw_length, scale, start=1, stop=10,
-                step=1, delay=True, L_minus=None,  k=None, n=36000, n_series=500, 
+                step=1, delay=0, L_minus=None,  k=None, n=36000, n_series=500, 
                 epsilon=0.001, block_length=None, BB_method='MBB', confusion=True, 
                 verbose=True):
     """
@@ -544,9 +545,9 @@ def choice_C(data, L_plus, delta_min, wdw_length, scale, start=1, stop=10,
     step : float > 0, optional
         Step value for C. The function tests different values of C in the 
         range [start, stop] with step value equal to 'step'. Default is 1.
-    delay : bool, optional
+    delay : int, optional
         Flag to start the chart after a delay randomly selected from the
-        interval [0, wdw_lengt]. Default is True. 
+        interval [0, delay]. Default is 0 (no delay). 
     L_minus :  float, optional
         Value for the negative control limit. Default is None. 
         When None, L_minus = - L_plus. 
@@ -602,6 +603,7 @@ def choice_C(data, L_plus, delta_min, wdw_length, scale, start=1, stop=10,
     
     wdw_length = int(np.ceil(wdw_length)) #should be integer
     
+    delay = int(delay)
     n = int(n)
     assert n > 0, "n must be strictly positive"
     if n % 3 == 2: #n should be multiple of 3
@@ -639,8 +641,8 @@ def choice_C(data, L_plus, delta_min, wdw_length, scale, start=1, stop=10,
                 series = resample(blocks, replace=True, n_samples=n_blocks).flatten()[:n_series]
             
             #simulate a random delay
-            if delay:
-                delay_rnd = np.random.randint(wdw_length)
+            if delay > 0 :
+                delay_rnd = np.random.randint(delay) 
 
                             
             for rnd_form in range(3):
@@ -706,8 +708,8 @@ def choice_C(data, L_plus, delta_min, wdw_length, scale, start=1, stop=10,
                 series = resample(blocks, replace=True, n_samples=n_blocks).flatten()[:n_series]
            
             #simulate a random delay
-            if delay:
-                delay_rnd = np.random.randint(wdw_length)
+            if delay > 0 :
+                delay_rnd = np.random.randint(delay) 
             
             for rnd_form in range(3):
                 

@@ -192,7 +192,7 @@ n_search = 12000*3 #number of testing and training instances
 ### find an optimal value for C (regularization parameter)
 # C_choices = svm.choice_C(dataIC_stn, control_limit, delta_target, wdw_length, scale,
 #                     start = 1, stop = 11, step = 1,
-#               delay=True, n=n_search, block_length=bb_length, confusion=False)
+#               delay=wdw_length, n=n_search, block_length=bb_length, confusion=False)
 
 #C = C_choices[2] #4,4,2
 
@@ -200,7 +200,7 @@ C = 4
 
 ### train the classifier and regressor with selected C and kernel
 reg, clf = svm.training_svm(dataIC_stn, control_limit, delta_target,
-                wdw_length, scale, delay=True, n=n, C=C, block_length=bb_length)
+                wdw_length, scale, delay=wdw_length*2, n=n, C=C, block_length=bb_length)
 
 ### save models 
 # filename = 'svr_elia_daily.sav'
