@@ -17,7 +17,9 @@ from cusvm import autocorrelations as acf
 
 ### load data (loaded automatically with package)
 data_path = pkg.resource_filename(pkg.Requirement.parse("cusvm"), 'data')
-df = pd.read_csv(data_path + '\PVdaily.csv')
+
+#df = pd.read_csv (r'../data/PVdaily.csv') #local path
+df = pd.read_csv(data_path + '\PVdaily.csv') #global path
 data = np.array(df)[:,1:]
 data = data.astype('float')
 data = data/96
@@ -36,7 +38,8 @@ names = list(df.columns)[1:]
 
 
 ### load time
-with open(data_path + '/time_daily', 'rb') as file:
+#with open('../data/time_daily', 'rb') as file: #local path
+with open(data_path + '/time_daily', 'rb') as file: #global path
     my_depickler = pickle.Unpickler(file)
     time = my_depickler.load() #data every day
     
@@ -47,7 +50,7 @@ with open(data_path + '/time_daily', 'rb') as file:
 # time = time[start:]
 
 ### plot the data 
-def plot(data, time, start_time=2015, stop_time=2021, ind=[3,4,14,20,21], same_ax=False):
+def multiplot(data, time, start_time=2015, stop_time=2021, ind=[3,4,14,20,21], same_ax=False):
     
     start = np.where(time >= start_time)[0][0] 
     stop = np.where(time >= stop_time)[0][0] 
@@ -77,6 +80,7 @@ def plot(data, time, start_time=2015, stop_time=2021, ind=[3,4,14,20,21], same_a
     plt.show()
     return fig
 
+
 def plot_single(data, time, start_time=2015, stop_time=2021, ind=3, same_ax=False):
     
     start = np.where(time >= start_time)[0][0] 
@@ -99,9 +103,9 @@ def plot_single(data, time, start_time=2015, stop_time=2021, ind=3, same_ax=Fals
 
 ################################################
 
-plot(data, time, 2016, 2017) #RESA, IVEG, IMEA 2015
-plot(data, time, 2019, 2020) #14 September, IMEA (pic)
-plot(data, time, 2017, 2017.8) #8march-21May (par 1/4H, changements brusques, avec 0)
+multiplot(data, time, 2016, 2017) #RESA, IVEG, IMEA 2015
+multiplot(data, time, 2019, 2020) #14 September, IMEA (pic)
+multiplot(data, time, 2017, 2017.8) #8march-21May (par 1/4H, changements brusques, avec 0)
 
 # plot_single(data, time, 2016, 2018, ind=5)
 # plt.ylabel('$P(i,t)$')
@@ -131,7 +135,7 @@ plt.show()
 
 ### rescaling
 data_rescaled, k_factors = pre.rescaling(data, period_rescaling=365) 
-plot(data_rescaled, time)
+multiplot(data_rescaled, time)
 
 ### median
 med = pre.median(data_rescaled)
@@ -140,7 +144,7 @@ plt.plot(time, med) ; plt.show()
 
 ### remove common signal 
 ratio = pre.remove_signal(data, ref=med) #mean = 1
-plot(ratio, time)
+multiplot(ratio, time)
 
 fig = plot_single(ratio, time, ind=region)
 plt.ylabel('$P(i,t)/\hat c(t)$ ')
@@ -161,7 +165,7 @@ plt.show()
 
 ### rescale the ratio
 ratio, k_factors = pre.rescaling(ratio, period_rescaling=365)
-plot(ratio, time)
+multiplot(ratio, time)
 
 fig = plot_single(ratio, time, ind=region)
 plt.ylabel('$\hat \mu_{\eta}(i,t)$ ')
@@ -186,10 +190,10 @@ pool = pre.pool_clustering(ratio) #10
 names_IC = [names[i] for i in range(n_series) if i in pool]
 names_OC = [names[i] for i in range(n_series) if i not in pool]
 
-plot(ratio, time)
-plot(ratio, time, ind=[2,7,12,14,17], same_ax=True) #OC
-plot(ratio, time, ind=[9,11,18,19,21], same_ax=True) #IC
-plot(ratio, time, ind=[1,21,2,8,15], same_ax=True) #IC and OC
+multiplot(ratio, time)
+multiplot(ratio, time, ind=[2,7,12,14,17], same_ax=True) #OC
+multiplot(ratio, time, ind=[9,11,18,19,21], same_ax=True) #IC
+multiplot(ratio, time, ind=[1,21,2,8,15], same_ax=True) #IC and OC
 
 ratioIC = ratio[:, pool]
 
@@ -197,7 +201,7 @@ ratioIC = ratio[:, pool]
 #K_knee = pre.choice_K(ratio, ratioIC, start=50, stop=2000, step=50)
 K = 400
 data_stn, dataIC_stn = pre.standardisation(ratio, ratioIC, K)
-plot(data_stn, time)
+multiplot(data_stn, time)
 
 fig = plot_single(data_stn, time, ind=region)
 plt.ylabel('$\hat \epsilon_{\eta}(i,t)$ ')

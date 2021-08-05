@@ -37,8 +37,8 @@ def firstNonNan(x):
       return ind
 
 
-def alerts_info(data, L_plus, delta, wdw_length, clf, reg, L_minus = None,
-                     k=None, cut=None, verbose=True):
+def alerts_info(data, L_plus, delta, wdw_length, clf, reg, L_minus=None,
+                     k=None, cut=None, verbose=True, wdw_shift=0):
     """
     Applies the two-sided CUSUM chart on a series.
     
@@ -72,6 +72,10 @@ def alerts_info(data, L_plus, delta, wdw_length, clf, reg, L_minus = None,
         When None, cut is equal to '2L_plus'. The default is None.
     Verbose : bool, optional
         Flag to print the percentage of alert in the series. Default is True.
+    wdw_shift : int, optional 
+        Shift that is applied to the predictions of the SVMs, to be better
+        aligned with the actual deviations. 
+        The default is 0.
     
     Returns
     -------
@@ -101,6 +105,8 @@ def alerts_info(data, L_plus, delta, wdw_length, clf, reg, L_minus = None,
         k = abs(delta)/2
     if cut is None:
         cut = L_plus * 2
+    wdw_shift = int(wdw_shift)
+    assert wdw_shift < wdw_length, "wdw_shift should be inferior to wdw_length"
     
     length = len(data[~np.isnan(data)])
     
@@ -138,6 +144,12 @@ def alerts_info(data, L_plus, delta, wdw_length, clf, reg, L_minus = None,
     input_minus_valid, ind_minus = svm.fill_nan(input_minus)
     input_plus_valid, ind_plus = svm.fill_nan(input_plus)
     
+    ## shift the indexes of the SVM predictions 
+    ## otherwise the deviation predicted at time t is based on 
+    ## the entire wdw_length
+    ind_minus = ind_minus - wdw_shift
+    ind_plus = ind_plus - wdw_shift
+    
     ##apply classifier and regressor on (filled-up) input vectors
     size_minus = np.zeros((n_obs)); size_plus = np.zeros((n_obs))
     size_minus[:] = np.nan; size_plus[:] = np.nan
@@ -159,7 +171,8 @@ def alerts_info(data, L_plus, delta, wdw_length, clf, reg, L_minus = None,
     
 def plot_4panels(data, unstn_data, L_plus, time, form_plus, form_minus, size_plus, 
                       size_minus, C_plus, C_minus, name, L_minus=None, 
-                      time_start=None, time_stop=None):
+                      time_start=None, time_stop=None, x_ticks=None,
+                      labels_ticks=None, fig_size=[7,10]):
     """
     Plots the main results of the monitoring. 
     
@@ -210,6 +223,16 @@ def plot_4panels(data, unstn_data, L_plus, time, form_plus, form_minus, size_plu
       Last time value of the plot, in years. The plot shows the period 
       [time_start, time_stop]. Default is None. 
       When None, the series is represented until the last observation.
+    x_ticks : 1D-array, optional
+        Locations of the ticks for the x-axis of the plot. 
+        The default is None.
+    labels_ticks : 1D-array, optional
+        Labels of the ticks for the x-axis of the plot. 
+        The labels can only be passed if the locations are passed as well.
+        The default is None.
+    fig_size : list, optional
+        Width and heigth of the resulting figure. 
+        The default is [7,10].
       
     Returns
     ------
@@ -223,11 +246,21 @@ def plot_4panels(data, unstn_data, L_plus, time, form_plus, form_minus, size_plu
     if time_start is None:
         start = firstNonNan(data)
     else: 
-        start = np.where(time >= time_start)[0][0]
+        try: 
+             time[-1] >= time_start
+        except TypeError as e:
+            e.args += ("the values of time should be of the same type as time_start",)
+            raise
+        start = [i for i in range(len(time)) if time[i] >= time_start][0]
     if time_stop is None:
         stop = len(time) - 1 
     else: 
-        stop = np.where(time >= time_stop)[0][0]
+        try: 
+             time[-1] >= time_stop
+        except TypeError as e:
+            e.args += ("the values of time should be of the same type as time_stop",)
+            raise
+        stop = [i for i in range(len(time)) if time[i] >= time_stop][0]
     assert stop > start, "time_stop should be stricly superior to time_start!"
     
     if L_minus is None:
@@ -259,19 +292,14 @@ def plot_4panels(data, unstn_data, L_plus, time, form_plus, form_minus, size_plu
     oscill_p[np.where(color_graph_p == 2)[0]] = size_plus[np.where(color_graph_p == 2)[0]]
 
 
-    plt.rcParams['figure.figsize'] = (7.0, 10.0)
     plt.rcParams['font.size'] = 14
-    if stop-start <500:
-        x_ticks = np.arange(np.round(time[start],1), np.round(time[stop],1), 0.2)
-    else :
-        x_ticks = np.arange(np.round(time[start]), np.round(time[stop])+1, 1)
         
     data_per = data[start:stop]
     max_val = max(data_per[~np.isnan(data_per)])
     min_val = min(data_per[~np.isnan(data_per)])
     y_max = 1.2*max_val ; y_min = 1.2*min_val
     
-    fig = plt.figure()
+    fig = plt.figure(figsize=(fig_size[0],fig_size[1]))
     f1 = fig.add_subplot(4, 1, 1)
     plt.title("Monitoring in %s" %name)
     plt.ylabel('Unstand. residuals')
@@ -279,7 +307,8 @@ def plot_4panels(data, unstn_data, L_plus, time, form_plus, form_minus, size_plu
     plt.plot([time[start], time[stop]], [1, 1], 'k-', lw=2)
     f1.axes.get_xaxis().set_ticklabels([]) 
     f1.set_xlim([time[start], time[stop]])
-    plt.xticks(x_ticks)
+    if x_ticks is not None:
+        plt.xticks(x_ticks)
     f1.axes.xaxis.grid(True, linewidth=0.15)
 
     f2 = fig.add_subplot(4, 1, 2)
@@ -287,7 +316,8 @@ def plot_4panels(data, unstn_data, L_plus, time, form_plus, form_minus, size_plu
     plt.plot(time[start:stop], data[start:stop])
     plt.plot([time[start], time[stop]], [0, 0], 'k-', lw=2)
     f2.set_ylim([y_min, y_max]); f2.set_xlim([time[start], time[stop]])
-    plt.xticks(x_ticks)
+    if x_ticks is not None:
+        plt.xticks(x_ticks)
     f2.axes.get_xaxis().set_ticklabels([]) 
     f2.axes.xaxis.grid(True, linewidth=0.15)
     
@@ -302,19 +332,21 @@ def plot_4panels(data, unstn_data, L_plus, time, form_plus, form_minus, size_plu
     plt.legend(loc='upper right', ncol=2, fontsize=10)
     f3.set_ylim([-np.sqrt(2*L_plus)*2, np.sqrt(2*L_plus)*2])
     f3.set_xlim([time[start], time[stop]])
-    plt.xticks(x_ticks)
+    if x_ticks is not None:
+        plt.xticks(x_ticks)
     f3.axes.get_xaxis().set_ticklabels([]) 
     f3.axes.xaxis.grid(True, linewidth=0.15)
     
-    sizes = np.array([size_plus, size_minus])
-    sizes_per = sizes[:,start:stop]
-    if len(sizes_per[~np.isnan(sizes_per)]) > 0:
-        max_val = max(sizes_per[~np.isnan(sizes_per)])
-        min_val = min(sizes_per[~np.isnan(sizes_per)])
-        y_max = 1.2*max_val ; y_min = 1.2*min_val
+    # sizes = np.array([size_plus, size_minus])
+    # sizes_per = sizes[:,start:stop]
+    # if len(sizes_per[~np.isnan(sizes_per)]) > 0:
+    #     max_val = max(sizes_per[~np.isnan(sizes_per)])
+    #     min_val = min(sizes_per[~np.isnan(sizes_per)])
+    #     y_max = 1.5*max_val ; y_min = 1.5*min_val
     
     f4 = fig.add_subplot(4, 1, 4)
     plt.ylabel('Deviations')
+    plt.plot(time[start:stop], data[start:stop], color='#7f7f7f', lw=0.2)
     plt.plot(time[start:stop], jump_m[start:stop], '--', c='tab:purple', label='jumps')
     plt.plot(time[start:stop], jump_p[start:stop], '--', c='tab:purple')
     plt.plot(time[start:stop], trend_m[start:stop],  c='tab:green', label='trends')
@@ -324,8 +356,12 @@ def plot_4panels(data, unstn_data, L_plus, time, form_plus, form_minus, size_plu
     plt.plot([time[start], time[stop]], [0, 0], 'k-', lw=2)
     plt.legend(loc='lower right', ncol=3, fontsize=10)
     f4.set_ylim([y_min, y_max]); f4.set_xlim([time[start], time[stop]])
-    plt.xticks(x_ticks)
-    plt.xlabel('year')
+    if x_ticks is not None:
+        if labels_ticks is not None:
+            plt.xticks(x_ticks, labels_ticks)
+        else:
+            plt.xticks(x_ticks)
+    plt.xlabel('time')
     plt.tick_params(axis='x', which='major') 
     f4.axes.xaxis.grid(True, linewidth=0.15)
 
@@ -339,7 +375,8 @@ def plot_4panels(data, unstn_data, L_plus, time, form_plus, form_minus, size_plu
 
     
 def plot_1panel(data, time, form_plus, form_minus, size_plus, 
-             size_minus, name, time_start=None, time_stop=None):
+             size_minus, name, time_start=None, time_stop=None,
+             x_ticks=None, labels_ticks=None, fig_size=[12,4]):
     """
     Plots the predictions (forms and sizes) of the support 
     vector machines (SVM).
@@ -373,6 +410,16 @@ def plot_1panel(data, time, form_plus, form_minus, size_plus,
       Last time value of the plot, in years. The plot shows the period 
       [time_start, time_stop]. Default is None. 
       When None, the series is represented until the last observation.
+    x_ticks : 1D-array, optional
+        Locations of the ticks for the x-axis of the plot. 
+        The default is None.
+    labels_ticks : 1D-array, optional
+        Labels of the ticks for the x-axis of the plot. 
+        The labels can only be passed if the locations are passed as well.
+        The default is None.
+    fig_size : list, optional
+        Width and heigth of the resulting figure. 
+        The default is [12,4].
       
     Returns
     ------
@@ -386,11 +433,22 @@ def plot_1panel(data, time, form_plus, form_minus, size_plus,
     if time_start is None:
         start = firstNonNan(data)
     else: 
-        start = np.where(time >= time_start)[0][0]
+        try: 
+             time[-1] >= time_start
+        except TypeError as e:
+            e.args += ("the values of time should be of the same type as time_start",)
+            raise
+        start = [i for i in range(len(time)) if time[i] >= time_start][0]
     if time_stop is None:
         stop = len(time) - 1 
     else: 
-        stop = np.where(time >= time_stop)[0][0]
+        try: 
+             time[-1] >= time_stop
+        except TypeError as e:
+            e.args += ("the values of time should be of the same type as time_stop",)
+            raise
+        stop = [i for i in range(len(time)) if time[i] >= time_stop][0]
+        
     assert stop > start, "time_stop should be stricly superior to time_start!"
     
         
@@ -420,30 +478,25 @@ def plot_1panel(data, time, form_plus, form_minus, size_plus,
     oscill_p[np.where(color_graph_p == 2)[0]] = size_plus[np.where(color_graph_p == 2)[0]]
 
 
-    plt.rcParams['figure.figsize'] = (12.0, 4.0)
     plt.rcParams['font.size'] = 14
-    if stop-start <500:
-        x_ticks = np.arange(np.round(time[start], 2), np.round(time[stop], 2), 0.2)
-    else :
-        x_ticks = np.arange(np.round(time[start]), np.round(time[stop])+1, 1)
-    
     
     sizes = np.array([size_plus, size_minus])
     sizes_per = sizes[:,start:stop]
     if len(sizes_per[~np.isnan(sizes_per)]) > 0:
         max_val = max(sizes_per[~np.isnan(sizes_per)])
         min_val = min(sizes_per[~np.isnan(sizes_per)])
-        y_max = 1.2*max_val ; y_min = 1.2*min_val
+        y_max = 1.5*max_val ; y_min = 1.5*min_val
     else:
         data_per = data[start:stop]
         max_val = max(data_per[~np.isnan(data_per)])
         min_val = min(data_per[~np.isnan(data_per)])
         y_max = 1.2*max_val ; y_min = 1.2*min_val
     
-    fig = plt.figure()
+    fig = plt.figure(figsize=(fig_size[0],fig_size[1]))
     f1 = fig.add_subplot(1, 1, 1)
     plt.ylabel('Deviations')
     plt.title("Monitoring in %s" %name)
+    plt.plot(time[start:stop], data[start:stop], color='#7f7f7f', lw=0.2)
     plt.plot(time[start:stop], jump_m[start:stop], '--', c='tab:purple', label='jumps')
     plt.plot(time[start:stop], jump_p[start:stop], '--', c='tab:purple')
     plt.plot(time[start:stop], trend_m[start:stop],  c='tab:green', label='trends')
@@ -453,8 +506,12 @@ def plot_1panel(data, time, form_plus, form_minus, size_plus,
     plt.plot([time[start], time[stop]], [0, 0], 'k-', lw=2)
     plt.legend(loc='lower center', ncol=3)
     f1.set_ylim([y_min, y_max]); f1.set_xlim([time[start], time[stop]])
-    plt.xticks(x_ticks)
-    plt.xlabel('year')
+    if x_ticks is not None:
+        if labels_ticks is not None:
+            plt.xticks(x_ticks, labels_ticks)
+        else:
+            plt.xticks(x_ticks)
+    plt.xlabel('time')
     plt.tick_params(axis='x', which='major') 
     f1.axes.xaxis.grid(True, linewidth=0.15)
 
@@ -466,7 +523,8 @@ def plot_1panel(data, time, form_plus, form_minus, size_plus,
     
 def plot_3panels(data, L_plus, time, form_plus, form_minus, size_plus, 
                       size_minus, C_plus, C_minus, name, L_minus=None, 
-                      time_start=None, time_stop=None, years=True, hours=False):
+                      time_start=None, time_stop=None, x_ticks=None,
+                      labels_ticks=None, fig_size=[7,7]):
     """
     Plots the main results of the monitoring. 
     
@@ -483,7 +541,7 @@ def plot_3panels(data, L_plus, time, form_plus, form_minus, size_plus,
         A (single) series of standardized observations to be monitored. 
     L_plus : float 
         Value for the positive control limit.
-    time : 1D-array
+    time : 1D-array 
         An array with the time of the observations (same length as data).
     form_plus : 1D-array
         Predicted shift forms after positive alerts (same length as data). 
@@ -506,22 +564,26 @@ def plot_3panels(data, L_plus, time, form_plus, form_minus, size_plus,
     L_minus :  float, optional
         Value for the negative control limit. Default is None. 
         When None, L_minus = - L_plus. 
-    time_start : int, optional
-       Starting time value of the plot. The plot shows the period 
+    time_start : float or datetime object, optional
+       Starting time value of the plot. Should be 
+       The plot shows the period 
        [time_start, time_stop]. Default is None. 
        When None, the first non-Nan observation in the series is used. 
-    time_stop : int, optional
+    time_stop : float or datetime object, optional
       Last time value of the plot. The plot shows the period 
       [time_start, time_stop]. Default is None. 
       When None, the series is represented until the last observation.
-    years : bool, optional
-        Flag to indicate that the time of the obs. is expressed into years.
-        The default is True.
-    hours : bool, optional
-        Flag to indicate that the time of the obs. is expressed into minutes or
-        hours. The function is then designed to show a single day of data 
-        (xthick each two hours).
-        The default is False.
+    x_ticks : 1D-array, optional
+        Locations of the ticks for the x-axis of the plot. 
+        The default is None.
+    labels_ticks : 1D-array, optional
+        Labels of the ticks for the x-axis of the plot. 
+        The labels can only be passed if the locations are passed as well.
+        The default is None.
+    fig_size : list, optional
+        Width and heigth of the resulting figure. 
+        The default is [7,7].
+        
     Returns
     ------
     fig : a matplotlib figure
@@ -531,16 +593,29 @@ def plot_3panels(data, L_plus, time, form_plus, form_minus, size_plus,
     
     assert np.ndim(data) == 1, "Input data must be a 1D array (one series)"
     n_obs = len(data)
+                
+
     if time_start is None:
         start = firstNonNan(data)
     else: 
-        start = np.where(time >= time_start)[0][0]
+        try: 
+             time[-1] >= time_start
+        except TypeError as e:
+            e.args += ("the values of time should be of the same type as time_start",)
+            raise
+        start = [i for i in range(len(time)) if time[i] >= time_start][0]
     if time_stop is None:
         stop = len(time) - 1 
     else: 
-        stop = np.where(time >= time_stop)[0][0]
+        try: 
+             time[-1] >= time_stop
+        except TypeError as e:
+            e.args += ("the values of time should be of the same type as time_stop",)
+            raise
+        stop = [i for i in range(len(time)) if time[i] >= time_stop][0]
+        
     assert stop > start, "time_stop should be stricly superior to time_start!"
-    
+     
     if L_minus is None:
         L_minus = -L_plus
         
@@ -570,28 +645,22 @@ def plot_3panels(data, L_plus, time, form_plus, form_minus, size_plus,
     oscill_p[np.where(color_graph_p == 2)[0]] = size_plus[np.where(color_graph_p == 2)[0]]
 
 
-    plt.rcParams['figure.figsize'] = (7.0, 7.0)
     plt.rcParams['font.size'] = 14
-    if hours:
-        x_ticks = np.arange(time[start], time[stop], (time[stop]-time[start])/12)
-    elif years:
-        x_ticks = np.arange(np.round(time[start]), np.round(time[stop])+1, 1)
-    else :
-         x_ticks = np.arange(np.round(time[start],1), np.round(time[stop],1), 0.2)
         
     data_per = data[start:stop]
     max_val = max(data_per[~np.isnan(data_per)])
     min_val = min(data_per[~np.isnan(data_per)])
     y_max = 1.2*max_val ; y_min = 1.2*min_val
     
-    fig = plt.figure()
+    fig = plt.figure(figsize=(fig_size[0],fig_size[1]))
     f1 = fig.add_subplot(3, 1, 1)
     plt.title("Monitoring in %s" %name)
     plt.ylabel('Stand. residuals')
     plt.plot(time[start:stop], data[start:stop])
     plt.plot([time[start], time[stop]], [0, 0], 'k-', lw=2)
     f1.set_ylim([y_min, y_max]); f1.set_xlim([time[start], time[stop]])
-    plt.xticks(x_ticks)
+    if x_ticks is not None:
+        plt.xticks(x_ticks)
     f1.axes.get_xaxis().set_ticklabels([]) 
     f1.axes.xaxis.grid(True, linewidth=0.1, linestyle='-', color='#7f7f7f')
     
@@ -606,20 +675,21 @@ def plot_3panels(data, L_plus, time, form_plus, form_minus, size_plus,
     plt.legend(loc='upper right', ncol=2, fontsize=10)
     f2.set_ylim([-np.sqrt(2*L_plus)*2, np.sqrt(2*L_plus)*2])
     f2.set_xlim([time[start], time[stop]])
-    plt.xticks(x_ticks)
+    if x_ticks is not None:
+        plt.xticks(x_ticks)
     f2.axes.get_xaxis().set_ticklabels([]) 
     f2.axes.xaxis.grid(True, linewidth=0.1, linestyle='-', color='#7f7f7f')
     
-    sizes = np.array([size_plus, size_minus])
-    sizes_per = sizes[:,start:stop]
-    if len(sizes_per[~np.isnan(sizes_per)]) > 0:
-        max_val = max(sizes_per[~np.isnan(sizes_per)])
-        min_val = min(sizes_per[~np.isnan(sizes_per)])
-        y_max = 1.2*max_val ; y_min = 1.2*min_val
+    # sizes = np.array([size_plus, size_minus])
+    # sizes_per = sizes[:,start:stop]
+    # if len(sizes_per[~np.isnan(sizes_per)]) > 0:
+    #     max_val = max(sizes_per[~np.isnan(sizes_per)])
+    #     min_val = min(sizes_per[~np.isnan(sizes_per)])
+    #     y_max = 1.5*max_val ; y_min = 1.5*min_val
 
-    
     f3 = fig.add_subplot(3, 1, 3)
     plt.ylabel('Deviations')
+    plt.plot(time[start:stop], data[start:stop], color='#7f7f7f', lw=0.2)
     plt.plot(time[start:stop], jump_m[start:stop], '--', c='tab:purple', label='jumps')
     plt.plot(time[start:stop], jump_p[start:stop], '--', c='tab:purple')
     plt.plot(time[start:stop], trend_m[start:stop],  c='tab:green', label='trends')
@@ -628,17 +698,18 @@ def plot_3panels(data, L_plus, time, form_plus, form_minus, size_plus,
     plt.plot(time[start:stop], oscill_p[start:stop], ':', c='tab:orange')
     plt.plot([time[start], time[stop]], [0, 0], 'k-', lw=2)
     plt.legend(loc='lower right', ncol=3, fontsize=10)
-    plt.xticks(x_ticks)
-    if hours:
-        f3.axes.set_xticklabels(list(np.arange(0,24,2))) #thick each two hours
-        plt.xlabel('hour')
-    else:
-        f3.set_ylim([y_min, y_max]) 
-        f3.set_xlim([time[start], time[stop]])
-        plt.xlabel('year')
+    f3.set_ylim([y_min, y_max]) 
+    f3.set_xlim([time[start], time[stop]])
+    if x_ticks is not None:
+        if labels_ticks is not None:
+            plt.xticks(x_ticks, labels_ticks)
+        else:
+            plt.xticks(x_ticks)
+    plt.xlabel('time')
     plt.tick_params(axis='x', which='major') 
     f3.axes.xaxis.grid(True, linewidth=0.1, linestyle='-', color='#7f7f7f')
 
     #plt.tight_layout() 
     plt.show()
+    
     return fig 

@@ -412,14 +412,6 @@ def block_length_choice(data, bbl_min=10, bbl_max=110, bbl_step=10,
     x = bbl
     y = mse_corr
     
-    if plot: 
-        plt.plot(x, y); plt.xlabel('block length')
-        plt.ylabel('mse of autocorrelation')
-        plt.title('MSE of the autocorrelation as a function of the block length')
-        plt.show()
-        print('Block length which minimizes the mse of the mean:', x[np.argmin(mse_mean)])#0
-        print('Block length which minimizes the mse of the std:', x[np.argmin(mse_std)])#0
-        print('Block length which minimizes the mse of the autocorrelation:', x[np.argmin(mse_corr)]) #100
     
     #select the knee of the curve
     coef = np.polyfit(x, y, deg=1)
@@ -434,6 +426,20 @@ def block_length_choice(data, bbl_min=10, bbl_max=110, bbl_step=10,
         direction = 'increasing'
     kn = KneeLocator(x, y, curve=curve, direction=direction)
     block_length = kn.knee 
+    
+    if plot: 
+        plt.rcParams['figure.figsize'] = (10.0, 6.0)
+        plt.rcParams['font.size'] = 14
+        plt.plot(x, y, marker='o'); plt.xlabel('block length')
+        plt.ylabel('mse of autocorrelation')
+        plt.title('MSE of the autocorrelation as function of the block length')
+        if block_length is not None:
+            plt.axvline(x=block_length, color='orange', linestyle='--', label='selected value \n (knee)')
+            plt.legend()
+        plt.show()
+        print('Block length which minimizes the mse of the mean:', x[np.argmin(mse_mean)])#0
+        print('Block length which minimizes the mse of the std:', x[np.argmin(mse_std)])#0
+        print('Block length which minimizes the mse of the autocorrelation:', x[np.argmin(mse_corr)]) #100
     
     return block_length
 

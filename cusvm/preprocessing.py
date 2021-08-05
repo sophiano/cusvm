@@ -18,7 +18,6 @@ from sklearn.mixture import GaussianMixture
 from sklearn.linear_model import LinearRegression
 from kneed import KneeLocator
 import matplotlib.pyplot as plt
-plt.rcParams['figure.figsize'] = (10.0, 6.0)
 
 
 def rescaling(data, period_rescaling):
@@ -610,12 +609,6 @@ def choice_K(data, dataIC, start=200, stop=10000, step=200, plot=True):
         mean_data[c] = np.nanmean(data_stn)
         std_data[c] = np.nanstd(data_stn)
         c += 1
-        
-    if plot: 
-        plt.plot(x, mean_data[:len(x)]);  plt.xlabel('K'); plt.ylabel('mean')
-        plt.title('Mean of the data as a function of K'); plt.show()
-        plt.plot(x, std_data[:len(x)]); plt.xlabel('K'); plt.ylabel('std')
-        plt.title('Std of the data as a function of K'); plt.show()
     
     y = std_data[:len(x)]
     coef = np.polyfit(x, y, deg=1)
@@ -631,6 +624,22 @@ def choice_K(data, dataIC, start=200, stop=10000, step=200, plot=True):
     kn = KneeLocator(x, y, curve=curve, direction=direction)
     K = kn.knee 
     
+    if plot: 
+        plt.rcParams['figure.figsize'] = (8.0, 8.0)
+        plt.rcParams['font.size'] = 14
+        plt.plot(x, mean_data[:len(x)], marker='o');  plt.xlabel('K'); plt.ylabel('mean')
+        plt.title('Mean of the data as function of K')
+        if K is not None:
+            plt.axvline(x=K, color='orange', linestyle='--', label='K selected \n (knee)')
+            plt.legend()
+        plt.show()
+        plt.plot(x, std_data[:len(x)], marker='o'); plt.xlabel('K'); plt.ylabel('std')
+        plt.title('Std of the data as function of K')
+        if K is not None:
+            plt.axvline(x=K, color='orange', linestyle='--', label='K selected \n (knee)')
+            plt.legend()
+        plt.show()
+        
     return K
 
 
