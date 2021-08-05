@@ -24,7 +24,7 @@ from cusvm import bb_methods as bb
 
 def input_vector_length(data, delta_min, L_plus, L_minus=None, k=None,
                 nmc=4000, n=2000, qt=None, block_length=None, 
-                BB_method='MBB', plot=True):
+                BB_method='MBB', plot=False):
     """ 
     Computes the length of the input vector for the support vector machine 
     procedures (svms). 
@@ -90,7 +90,7 @@ def input_vector_length(data, delta_min, L_plus, L_minus=None, k=None,
        Default is 'MBB'.
     plot :  bool, optional 
         Flag to show the histogram of the run length distribution. 
-        Default is True.
+        Default is False.
          
     Returns
     -------
@@ -497,7 +497,7 @@ def training_svm(data, L_plus, delta_min, wdw_length, scale,
 
 def choice_C(data, L_plus, delta_min, wdw_length, scale, start=1, stop=10,
                 step=1, delay=0, L_minus=None,  k=None, n=36000, n_series=500, 
-                epsilon=0.001, block_length=None, BB_method='MBB', confusion=True, 
+                epsilon=0.001, block_length=None, BB_method='MBB', confusion=False, 
                 verbose=True):
     """
     Selects an appropriate value for the regularization parameter (C) of the 
@@ -576,7 +576,7 @@ def choice_C(data, L_plus, delta_min, wdw_length, scale, start=1, stop=10,
        Default is 'MBB'.
     confusion : bool, optional 
         Flag to show the confusion matrix (measure of the classification accuracy, 
-        class by class). Default is True.  
+        class by class). Default is False.  
     verbose : bool, optional    
         Flag to print infos about C. Default is True.
           
